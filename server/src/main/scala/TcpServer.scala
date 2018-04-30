@@ -20,6 +20,25 @@ class TcpServer(address: InetSocketAddress, actorSystem: ActorSystem) extends Ac
       log.info(s"Tcp client from $remoteAddress connected!")
       val connection: ActorRef = sender()
       connection ! Register(self)
-      connection ! Write(ByteString("Hello!"))
+      connection ! Write(
+        ByteString(
+          "<CRED_REQ>Hello! Please enter your credentials as login with password separated by space."
+        )
+      )
+
+      context become {
+        case CommandFailed(w: Write) =>
+          log.error("Failed to write request.")
+        case Received(data) =>
+          log.debug("Received response.")
+          val response: String = data.decodeString("UTF-8")
+          log.info(response)
+        case "close" =>
+          log.debug("Closing connection")
+          connection ! Close
+        case _: ConnectionClosed =>
+          log.debug("Connection closed by server.")
+          context stop self
+      }
   }
 }

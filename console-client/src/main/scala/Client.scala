@@ -3,6 +3,9 @@ import java.net.InetSocketAddress
 import akka.actor.{Actor, ActorLogging, ActorRef, ActorSystem, Kill}
 import akka.io.Tcp._
 import akka.io.{IO, Tcp}
+import akka.util.ByteString
+
+import scala.io.StdIn
 
 class Client(remoteAddress: InetSocketAddress, actorSystem: ActorSystem) extends Actor with ActorLogging {
 
@@ -23,13 +26,21 @@ class Client(remoteAddress: InetSocketAddress, actorSystem: ActorSystem) extends
         case CommandFailed(w: Write) =>
           log.error("Failed to write request.")
         case Received(data) =>
-          log.info("Received response.")
-          println(data.decodeString("UTF-8"))
+          log.debug("Received response.")
+          val response: String = data.decodeString("UTF-8")
+
+          if(response.startsWith("<CRED_REQ>")){
+            println(response.replace("<CRED_REQ>", ""))
+
+            val credentials: String = StdIn.readLine()
+            connection ! Write(ByteString(s"<CRED_RESP>$credentials"))
+          }
+
         case "close" =>
-          log.info("Closing connection")
+          log.debug("Closing connection")
           connection ! Close
         case _: ConnectionClosed =>
-          log.info("Connection closed by server.")
+          log.debug("Connection closed by server.")
           context stop self
       }
   }
