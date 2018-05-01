@@ -2,14 +2,15 @@ package models
 
 import java.time.LocalDateTime
 
+import models.Mapping._
 import slick.jdbc.H2Profile.api._
-import slick.lifted.{ProvenShape, Tag}
+import slick.lifted.Tag
 
 object Provider extends Enumeration {
 
   type Type = Value
 
-  val TCP = Value
+  val TCP, WEB_SOCKET = Value
 }
 
 case class User(
@@ -36,6 +37,6 @@ class UserTable(tag: Tag)
   def isOnline = column[Boolean]("is_online")
   def registrationDate = column[LocalDateTime]("registered_at")
 
-  override def * : ProvenShape[(Int, Provider.Type, Option[String], String, String, Boolean, LocalDateTime)] =
-    (id, provider, externalUserId, login, password, isOnline, registrationDate) <> (User.tupled, User.unapply)
+  override def * = (id, provider, externalUserId, login, password, isOnline, registrationDate) <>
+    (User.tupled, User.unapply)
 }
