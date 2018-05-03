@@ -1,8 +1,8 @@
-package models
+package db.models
 
 import java.time.LocalDateTime
 
-import models.Mapping._
+import db.Db.{localDateTimeMapping, providerMapping}
 import slick.jdbc.H2Profile.api._
 import slick.lifted.Tag
 
@@ -32,7 +32,7 @@ class UserTable(tag: Tag)
   def id = column[Int]("id", O.PrimaryKey, O.AutoInc)
   def provider = column[Provider.Type]("provider")
   def externalUserId = column[Option[String]]("user_id")
-  def login = column[String]("login")
+  def login = column[String]("login", O.Unique)
   def password = column[String]("password")
   def isOnline = column[Boolean]("is_online")
   def registrationDate = column[LocalDateTime]("registered_at")

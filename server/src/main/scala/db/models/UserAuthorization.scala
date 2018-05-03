@@ -1,8 +1,9 @@
-package models
+package db.models
 
 import java.time.LocalDateTime
 
-import models.Mapping.localDateTimeMapping
+import db.Db
+import db.Db.localDateTimeMapping
 import slick.jdbc.H2Profile.api._
 import slick.lifted.Tag
 
@@ -12,10 +13,13 @@ import slick.lifted.Tag
 case class UserAuthorization(id: Int, userId: Int, isSuccess: Boolean, createdAt: LocalDateTime)
 
 class UserAuthorizationTable(tag: Tag) extends Table[UserAuthorization](tag, "users_auths") {
+
   def id = column[Int]("id", O.PrimaryKey, O.AutoInc)
   def userId = column[Int]("user_id")
   def isSuccess = column[Boolean]("is_success")
   def creationDate = column[LocalDateTime]("created_at")
+
+  def userKey = foreignKey("USER_FK", userId, Db.users)(_.id)
 
   override def * = (id, userId, isSuccess, creationDate) <>
     (UserAuthorization.tupled, UserAuthorization.unapply)
