@@ -8,6 +8,9 @@ import slick.ast.BaseTypedType
 import slick.jdbc.H2Profile.api._
 import slick.jdbc.JdbcType
 
+import scala.concurrent.Await
+import scala.concurrent.duration.Duration
+
 object Db {
 
   lazy implicit val providerMapping: JdbcType[Type] with BaseTypedType[Type] =
@@ -19,5 +22,5 @@ object Db {
   lazy val userAuthorizations = TableQuery[UserAuthorizationTable]
 
   lazy val db = Database.forConfig("databases.test-h2")
-  db.run((users.schema ++ userAuthorizations.schema).create)
+  Await.result(db.run((users.schema ++ userAuthorizations.schema).create), Duration.Inf)
 }
