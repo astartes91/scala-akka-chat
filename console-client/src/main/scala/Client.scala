@@ -34,6 +34,8 @@ class Client(remoteAddress: InetSocketAddress, actorSystem: ActorSystem) extends
 
             val credentials: String = StdIn.readLine()
             connection ! Write(ByteString(s"<CRED_RESP>$credentials"))
+          } else {
+            println(response)
           }
 
         case "close" =>

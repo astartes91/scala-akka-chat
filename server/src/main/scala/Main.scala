@@ -2,6 +2,7 @@ import java.net.InetSocketAddress
 
 import akka.actor.{ActorRef, ActorSystem, Props}
 import akka.stream.ActorMaterializer
+import tcp.TcpServer
 
 import scala.concurrent.ExecutionContextExecutor
 
