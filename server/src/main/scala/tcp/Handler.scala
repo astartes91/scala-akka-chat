@@ -23,20 +23,8 @@ class Handler extends Actor with ActorLogging {
       log.info(response)
 
       if(response.startsWith("<CRED_RESP>")){
-        response = response.replace("<CRED_RESP>", "")
-        val credentials: Array[String] = response.split(" ")
-        val login: String = credentials(0)
-        val password: String = credentials(1)
-        val user: Option[User] = UserRepository.findByLogin(login)
-        if(user.nonEmpty){
-          ???
-        } else {
-          UserRepository.insert(
-            new User(0, Provider.TCP, None, login, password, true, LocalDateTime.now())
-          )
 
-          sender() ! Write(ByteString("You successfully registered!"))
-        }
+        handleAuthorization(response)
       }
 
     case "close" =>
@@ -46,5 +34,32 @@ class Handler extends Actor with ActorLogging {
       log.debug("Connection closed by server.")
       context stop self
     case PeerClosed => context stop self
+  }
+
+  private def handleAuthorization(response: String): Unit = {
+    val credentialsStr: String = response.replace("<CRED_RESP>", "")
+    val credentials: Array[String] = credentialsStr.split(" ")
+    if (credentials.length == 2) {
+      val login: String = credentials(0)
+      val password: String = credentials(1)
+      val userOpt: Option[User] = UserRepository.findByLogin(login)
+      if (userOpt.nonEmpty) {
+        val user: User = userOpt.get
+        if (user.password.equals(password)) {
+          sender() ! Write(ByteString("You successfully logged in!"))
+        } else {
+          sender() ! Write(ByteString("You are not authorized!"))
+          sender() ! Close
+        }
+      } else {
+        UserRepository.insert(
+          new User(0, Provider.TCP, None, login, password, true, LocalDateTime.now())
+        )
+
+        sender() ! Write(ByteString("<CRED_REQ>You successfully registered! Now you can log in."))
+      }
+    } else {
+      sender() ! Write(ByteString("Something went wrong"))
+    }
   }
 }

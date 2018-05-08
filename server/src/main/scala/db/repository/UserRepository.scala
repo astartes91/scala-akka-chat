@@ -7,7 +7,7 @@ import slick.jdbc.H2Profile.api._
 import scala.concurrent.Await
 import scala.concurrent.duration.Duration
 
-object UserRepository extends {
+object UserRepository {
 
   def insert(user: User) {
     Db.db.run(Db.users += user)
