@@ -5,13 +5,15 @@ import java.time.LocalDateTime
 import akka.actor.{Actor, ActorLogging}
 import akka.io.Tcp._
 import akka.util.ByteString
-import db.models.{Provider, User}
-import db.repository.UserRepository
+import db.models.{Provider, User, UserAuthorization}
+import db.repository.{UserAuthorizationRepository, UserRepository}
 
 /**
   * @author Vladimir Nizamutdinov (astartes91@gmail.com)
   */
 class Handler extends Actor with ActorLogging {
+
+  private var isAuthorized: Boolean = false
 
   override def receive: Receive = {
 
@@ -46,14 +48,17 @@ class Handler extends Actor with ActorLogging {
       if (userOpt.nonEmpty) {
         val user: User = userOpt.get
         if (user.password.equals(password)) {
+          isAuthorized = true
+          UserAuthorizationRepository.insert(UserAuthorization(0, user.id, true, LocalDateTime.now()))
           sender() ! Write(ByteString("You successfully logged in!"))
         } else {
+          UserAuthorizationRepository.insert(UserAuthorization(0, user.id, false, LocalDateTime.now()))
           sender() ! Write(ByteString("You are not authorized!"))
           sender() ! Close
         }
       } else {
         UserRepository.insert(
-          new User(0, Provider.TCP, None, login, password, true, LocalDateTime.now())
+          User(0, Provider.TCP, None, login, password, true, LocalDateTime.now())
         )
 
         sender() ! Write(ByteString("<CRED_REQ>You successfully registered! Now you can log in."))
