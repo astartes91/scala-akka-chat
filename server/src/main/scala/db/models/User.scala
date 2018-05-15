@@ -26,8 +26,7 @@ case class User(
 /**
   * @author Vladimir Nizamutdinov (astartes91@gmail.com)
   */
-class UserTable(tag: Tag)
-  extends Table[User](tag, "users") {
+class UserTable(tag: Tag) extends Table[User](tag, "users") {
 
   def id = column[Int]("id", O.PrimaryKey, O.AutoInc)
   def provider = column[Provider.Type]("provider")

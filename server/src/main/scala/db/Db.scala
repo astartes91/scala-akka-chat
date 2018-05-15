@@ -20,7 +20,8 @@ object Db {
 
   lazy val users = TableQuery[UserTable]
   lazy val userAuthorizations = TableQuery[UserAuthorizationTable]
+  lazy val messages = TableQuery[MessageTable]
 
   lazy val db = Database.forConfig("databases.test-h2")
-  Await.result(db.run((users.schema ++ userAuthorizations.schema).create), Duration.Inf)
+  Await.result(db.run((users.schema ++ userAuthorizations.schema ++ messages.schema).create), Duration.Inf)
 }

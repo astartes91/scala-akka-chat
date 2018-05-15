@@ -37,7 +37,8 @@ class Client(remoteAddress: InetSocketAddress, actorSystem: ActorSystem) extends
           } else {
             println(response)
           }
-
+          /*val message: String = StdIn.readLine()
+          connection ! Write(ByteString(s"<MSG>$message"))*/
         case "close" =>
           log.debug("Closing connection")
           connection ! Close

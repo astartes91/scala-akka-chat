@@ -19,7 +19,7 @@ class UserAuthorizationTable(tag: Tag) extends Table[UserAuthorization](tag, "us
   def isSuccess = column[Boolean]("is_success")
   def creationDate = column[LocalDateTime]("created_at")
 
-  def userKey = foreignKey("USER_FK", userId, Db.users)(_.id)
+  def userKey = foreignKey("AUTHORIZATION_USER_FK", userId, Db.users)(_.id)
 
   override def * = (id, userId, isSuccess, creationDate) <>
     (UserAuthorization.tupled, UserAuthorization.unapply)
