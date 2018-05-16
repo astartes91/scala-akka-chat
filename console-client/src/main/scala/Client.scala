@@ -51,7 +51,7 @@ class Client(remoteAddress: InetSocketAddress, actorSystem: ActorSystem) extends
       }
   }
 
-  private def exit = {
+  private def exit{
     context stop self
     self ! Kill
     actorSystem.terminate()

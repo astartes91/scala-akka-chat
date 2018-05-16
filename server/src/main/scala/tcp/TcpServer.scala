@@ -2,7 +2,7 @@ package tcp
 
 import java.net.InetSocketAddress
 
-import akka.actor.{Actor, ActorLogging, ActorRef, ActorSystem, Props}
+import akka.actor.{Actor, ActorLogging, ActorRef, ActorSystem, Kill, Props}
 import akka.io.Tcp._
 import akka.io.{IO, Tcp}
 import akka.util.ByteString
@@ -18,6 +18,9 @@ class TcpServer(address: InetSocketAddress, actorSystem: ActorSystem) extends Ac
     case CommandFailed(_: Bind) =>
       log.error("Error!")
       context.stop(self)
+      self ! Kill
+      actorSystem.terminate()
+      System.exit(0)
     case Connected(remoteAddress, localAddress) =>
       log.info(s"Tcp client from $remoteAddress connected!")
       val handler: ActorRef = context.actorOf(Props[Handler])

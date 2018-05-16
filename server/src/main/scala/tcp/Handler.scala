@@ -2,11 +2,11 @@ package tcp
 
 import java.time.LocalDateTime
 
-import akka.actor.{Actor, ActorLogging}
+import akka.actor.{Actor, ActorLogging, Kill}
 import akka.io.Tcp._
 import akka.util.ByteString
 import db.models._
-import db.repository.{MessageRepository, UserAuthorizationRepository, UserRepository}
+import db.repository._
 
 /**
   * @author Vladimir Nizamutdinov (astartes91@gmail.com)
@@ -19,6 +19,7 @@ class Handler extends Actor with ActorLogging {
 
     case CommandFailed(w: Write) =>
       log.error("Failed to write request.")
+      exit
     case Received(data) =>
       var response: String = data.decodeString("UTF-8")
       log.info(s"Received response: $response")
@@ -32,21 +33,19 @@ class Handler extends Actor with ActorLogging {
           MessageRepository.addMessage(Message(0, user.id, response, LocalDateTime.now()))
         } else {
           sender() ! Write(ByteString("You are not authorized!"))
-          sender() ! Close
+          exit
         }
       }
 
     case "close" =>
-      log.debug("Closing connection")
-      user = null
-      sender() ! Close
+      log.info("Closing connection")
+      exit
     case _: ConnectionClosed =>
-      log.debug("Connection closed by server.")
-      user = null
-      context stop self
+      log.info("Connection closed.")
+      exit
     case PeerClosed =>
-      user = null
-      context stop self
+      log.info("Peer closed.")
+      exit
   }
 
   private def handleAuthorization(response: String): Unit = {
@@ -72,6 +71,7 @@ class Handler extends Actor with ActorLogging {
                 login = loginOpt.get
               } else {
                 throw new Exception("Strange error")
+                exit
               }
               sender() ! Write(ByteString(s"<MSG>time:${message.createdAt},author:$login,text:${message.text}"))
             }
@@ -79,7 +79,7 @@ class Handler extends Actor with ActorLogging {
         } else {
           UserAuthorizationRepository.insert(UserAuthorization(0, user.id, false, LocalDateTime.now()))
           sender() ! Write(ByteString("You are not authorized!"))
-          sender() ! Close
+          exit
         }
       } else {
         UserRepository.insert(
@@ -92,6 +92,14 @@ class Handler extends Actor with ActorLogging {
       }
     } else {
       sender() ! Write(ByteString("Something went wrong"))
+      exit
     }
+  }
+
+  private def exit{
+    this.user = null
+    sender() ! Close
+    context stop self
+    self ! Kill
   }
 }
