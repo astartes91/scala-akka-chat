@@ -14,10 +14,7 @@ class Client(remoteAddress: InetSocketAddress, actorSystem: ActorSystem) extends
   override def receive: Receive = {
     case CommandFailed(command: Tcp.Command) =>
       log.error(s"Failed to connect to ${remoteAddress.toString}")
-      context stop self
-      self ! Kill
-      actorSystem.terminate()
-      System.exit(0)
+      exit
     case Connected(remote, local) =>
       log.info(s"Successfully connected to $remote!")
 
@@ -27,10 +24,7 @@ class Client(remoteAddress: InetSocketAddress, actorSystem: ActorSystem) extends
       context become {
         case CommandFailed(w: Write) =>
           log.error("Failed to write request.")
-          context stop self
-          self ! Kill
-          actorSystem.terminate()
-          System.exit(0)
+          exit
         case Received(data) =>
           val response: String = data.decodeString("UTF-8")
           log.info(s"Received response: $response")
@@ -50,17 +44,18 @@ class Client(remoteAddress: InetSocketAddress, actorSystem: ActorSystem) extends
         case "close" =>
           log.info("Exit, closing connection...")
           connection ! Close
-          context stop self
-          self ! Kill
-          actorSystem.terminate()
-          System.exit(0)
+          exit
         case _: ConnectionClosed =>
           log.info("Connection closed by server.")
-          context stop self
-          self ! Kill
-          actorSystem.terminate()
-          System.exit(0)
+          exit
       }
+  }
+
+  private def exit = {
+    context stop self
+    self ! Kill
+    actorSystem.terminate()
+    System.exit(0)
   }
 }
 
