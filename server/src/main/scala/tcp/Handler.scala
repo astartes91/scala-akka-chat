@@ -21,14 +21,19 @@ class Handler extends Actor with ActorLogging {
       log.error("Failed to write request.")
     case Received(data) =>
       var response: String = data.decodeString("UTF-8")
-      log.debug(s"Received response: $response")
+      log.info(s"Received response: $response")
 
       if(response.startsWith("<CRED_RESP>")){
 
         handleAuthorization(response)
       } else if (response.startsWith("<MSG>")) {
-        response = response.replace("<MSG>", "")
-        MessageRepository.addMessage(Message(0, user.id, response, LocalDateTime.now()))
+        if (user != null){
+          response = response.replace("<MSG>", "")
+          MessageRepository.addMessage(Message(0, user.id, response, LocalDateTime.now()))
+        } else {
+          sender() ! Write(ByteString("You are not authorized!"))
+          sender() ! Close
+        }
       }
 
     case "close" =>
@@ -56,7 +61,7 @@ class Handler extends Actor with ActorLogging {
         if (user.password.equals(password)) {
           this.user = user
           UserAuthorizationRepository.insert(UserAuthorization(0, user.id, true, LocalDateTime.now()))
-          sender() ! Write(ByteString("You successfully logged in!"))
+          sender() ! Write(ByteString("<AUTH_SUCCESS>You successfully logged in!"))
 
           val messages: Seq[db.models.Message] = MessageRepository.findAll()
           messages.foreach(
@@ -81,7 +86,9 @@ class Handler extends Actor with ActorLogging {
           User(0, Provider.TCP, None, login, password, true, LocalDateTime.now())
         )
 
-        sender() ! Write(ByteString("<CRED_REQ>You successfully registered! Now you can log in."))
+        sender() ! Write(ByteString(
+          "<CRED_REQ>You successfully registered! Now you can log in. Plz enter your credentials"
+        ))
       }
     } else {
       sender() ! Write(ByteString("Something went wrong"))
