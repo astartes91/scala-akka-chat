@@ -1,6 +1,8 @@
 package db.repository
 
+import java.util
 import java.util.concurrent.CopyOnWriteArrayList
+import java.util.stream.Collectors
 
 import db.Db
 import db.models.Message
@@ -17,12 +19,23 @@ object MessageRepository {
     messages.add(message)
   }
 
-  def getMessages() = {
-    val messageArray: Array[Message] = new Array[Message](messages.size())
-    messages.toArray(messageArray)
+  def getLast15UnsavedMessages() = {
+    val messages15: util.List[Message] =
+      this.messages.stream()
+        .sorted((m, m1) => m.createdAt.compareTo(m1.createdAt))
+        .limit(15)
+        .collect(Collectors.toList())
+    val messageArray: Array[Message] = new Array[Message](messages15.size())
+    messages15.toArray(messageArray)
   }
 
-  def findAll(): Seq[Message] = {
-    Await.result(Db.db.run(Db.messages.take(15).result), Duration.Inf)
+  def findLast15SavedMessages(): Seq[Message] = {
+    Await.result(Db.db.run(Db.messages.sortBy(m => m.creationDate).take(15).result), Duration.Inf)
+  }
+
+  def getLast15Messages(): Seq[Message] = {
+    (findLast15SavedMessages() ++ getLast15UnsavedMessages())
+      .sortWith((m, m1) => m.createdAt.isBefore(m1.createdAt))
+      .take(15)
   }
 }
