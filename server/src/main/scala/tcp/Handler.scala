@@ -64,7 +64,7 @@ class Handler extends Actor with ActorLogging {
 
           val messages: Seq[db.models.Message] =
             (MessageRepository.findAll() ++ MessageRepository.getMessages()).take(15)
-              .sortWith((m, m1) => m.createdAt.isAfter(m1.createdAt))
+              .sortWith((m, m1) => m.createdAt.isBefore(m1.createdAt))
           messages.foreach(
             message => {
               val loginOpt: Option[String] = UserRepository.findLoginById(message.userId)
