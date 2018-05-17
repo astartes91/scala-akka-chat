@@ -62,7 +62,9 @@ class Handler extends Actor with ActorLogging {
           UserAuthorizationRepository.insert(UserAuthorization(0, user.id, true, LocalDateTime.now()))
           sender() ! Write(ByteString("<AUTH_SUCCESS>You successfully logged in!"))
 
-          val messages: Seq[db.models.Message] = MessageRepository.findAll()
+          val messages: Seq[db.models.Message] =
+            (MessageRepository.findAll() ++ MessageRepository.getMessages()).take(15)
+              .sortWith((m, m1) => m.createdAt.isAfter(m1.createdAt))
           messages.foreach(
             message => {
               val loginOpt: Option[String] = UserRepository.findLoginById(message.userId)
@@ -96,7 +98,7 @@ class Handler extends Actor with ActorLogging {
     }
   }
 
-  private def exit{
+  private def exit {
     this.user = null
     sender() ! Close
     context stop self

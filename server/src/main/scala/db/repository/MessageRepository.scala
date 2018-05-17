@@ -17,7 +17,12 @@ object MessageRepository {
     messages.add(message)
   }
 
+  def getMessages() = {
+    val messageArray: Array[Message] = new Array[Message](messages.size())
+    messages.toArray(messageArray)
+  }
+
   def findAll(): Seq[Message] = {
-    Await.result(Db.db.run(Db.messages.result), Duration.Inf)
+    Await.result(Db.db.run(Db.messages.take(15).result), Duration.Inf)
   }
 }
