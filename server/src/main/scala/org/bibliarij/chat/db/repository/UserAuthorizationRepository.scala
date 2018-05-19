@@ -1,7 +1,7 @@
-package db.repository
+package org.bibliarij.chat.db.repository
 
-import db.Db
-import db.models.UserAuthorization
+import org.bibliarij.chat.db.Db
+import org.bibliarij.chat.db.models.UserAuthorization
 import slick.jdbc.H2Profile.api._
 
 object UserAuthorizationRepository {

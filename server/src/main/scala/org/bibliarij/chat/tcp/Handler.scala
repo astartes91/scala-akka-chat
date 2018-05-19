@@ -1,12 +1,12 @@
-package tcp
+package org.bibliarij.chat.tcp
 
 import java.time.LocalDateTime
 
 import akka.actor.{Actor, ActorLogging, Kill}
 import akka.io.Tcp._
 import akka.util.ByteString
-import db.models._
-import db.repository._
+import org.bibliarij.chat.db.models.{Message, _}
+import org.bibliarij.chat.db.repository._
 
 /**
   * @author Vladimir Nizamutdinov (astartes91@gmail.com)
@@ -30,7 +30,8 @@ class Handler extends Actor with ActorLogging {
       } else if (response.startsWith("<MSG>")) {
         if (user != null){
           response = response.replace("<MSG>", "")
-          MessageRepository.addMessage(Message(0, user.id, response, LocalDateTime.now()))
+          val message: Message = Message(0, user.id, response, LocalDateTime.now())
+          MessageRepository.addMessage(message)
         } else {
           sender() ! Write(ByteString("You are not authorized!"))
           exit
@@ -59,21 +60,14 @@ class Handler extends Actor with ActorLogging {
         val user: User = userOpt.get
         if (user.password.equals(password)) {
           this.user = user
+          UserRepository.addAuthorizedUser(user.login, self, sender())
           UserAuthorizationRepository.insert(UserAuthorization(0, user.id, true, LocalDateTime.now()))
           sender() ! Write(ByteString("<AUTH_SUCCESS>You successfully logged in!"))
 
-          val messages: Seq[db.models.Message] = MessageRepository.getLast15Messages()
+          val messages: Seq[org.bibliarij.chat.db.models.Message] = MessageRepository.getLast15Messages()
           messages.foreach(
             message => {
-              val loginOpt: Option[String] = UserRepository.findLoginById(message.userId)
-              var login: String = ""
-              if (loginOpt.nonEmpty){
-                login = loginOpt.get
-              } else {
-                throw new Exception("Strange error")
-                exit
-              }
-              sender() ! Write(ByteString(s"<MSG>time:${message.createdAt},author:$login,text:${message.text}"))
+              sender() ! Write(ByteString(s"<MSG>${MessageRepository.messageToString(message)}"))
             }
           )
         } else {
@@ -97,7 +91,10 @@ class Handler extends Actor with ActorLogging {
   }
 
   private def exit {
-    this.user = null
+    if (user != null) {
+      UserRepository.removeAuthorizedUser(this.user.login)
+      this.user = null
+    }
     sender() ! Close
     context stop self
     self ! Kill

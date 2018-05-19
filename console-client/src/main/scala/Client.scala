@@ -38,12 +38,13 @@ class Client(remoteAddress: InetSocketAddress, actorSystem: ActorSystem) extends
             println(response.replace("<AUTH_SUCCESS>", ""))
             val listener: ActorRef = context.actorOf(Props(classOf[ConsoleListener], connection, self))
             listener ! "listen"
+          } else if(response.startsWith("<MSG>")) {
+            println(response.replace("<MSG>", ""))
           } else {
             println(response)
           }
         case "close" =>
           log.info("Exit, closing connection...")
-          connection ! Close
           exit
         case _: ConnectionClosed =>
           log.info("Connection closed by server.")
@@ -52,6 +53,7 @@ class Client(remoteAddress: InetSocketAddress, actorSystem: ActorSystem) extends
   }
 
   private def exit{
+    sender() ! Close
     context stop self
     self ! Kill
     actorSystem.terminate()

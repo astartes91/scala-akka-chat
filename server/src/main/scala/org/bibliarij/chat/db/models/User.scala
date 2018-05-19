@@ -1,8 +1,8 @@
-package db.models
+package org.bibliarij.chat.db.models
 
 import java.time.LocalDateTime
 
-import db.Db.{localDateTimeMapping, providerMapping}
+import org.bibliarij.chat.db.Db.{localDateTimeMapping, providerMapping}
 import slick.jdbc.H2Profile.api._
 import slick.lifted.Tag
 

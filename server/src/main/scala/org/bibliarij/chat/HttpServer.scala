@@ -1,3 +1,5 @@
+package org.bibliarij.chat
+
 import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.model.StatusCodes

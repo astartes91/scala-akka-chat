@@ -1,4 +1,4 @@
-package tcp
+package org.bibliarij.chat.tcp
 
 import java.net.InetSocketAddress
 

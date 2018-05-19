@@ -1,3 +1,5 @@
+package org.bibliarij.chat
+
 import org.slf4j.{Logger, LoggerFactory}
 
 trait Loggable {
