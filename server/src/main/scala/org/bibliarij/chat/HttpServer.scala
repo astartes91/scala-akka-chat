@@ -26,14 +26,14 @@ class HttpServer(
 
   private def rootRoute: Route = pathSingleSlash {
     get {
-      redirect("index.html", StatusCodes.PermanentRedirect)
+      redirect("web/index.html", StatusCodes.PermanentRedirect)
     }
   }
 
   private def getResRoute: Route =
-    pathPrefix(""){
+    pathPrefix("web"){
       get {
-        getFromResourceDirectory(".")
+        getFromResourceDirectory("web")
       }
     }
 
