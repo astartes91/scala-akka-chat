@@ -5,6 +5,7 @@ import java.time.LocalDateTime
 import akka.actor.{Actor, ActorLogging, Kill}
 import akka.io.Tcp._
 import akka.util.ByteString
+import org.bibliarij.chat.db.AuthorizationHandler
 import org.bibliarij.chat.db.models.{Message, _}
 import org.bibliarij.chat.db.repository._
 
@@ -55,34 +56,23 @@ class Handler extends Actor with ActorLogging {
     if (credentials.length == 2) {
       val login: String = credentials(0)
       val password: String = credentials(1)
-      val userOpt: Option[User] = UserRepository.findByLogin(login)
-      if (userOpt.nonEmpty) {
-        val user: User = userOpt.get
-        if (user.password.equals(password)) {
-          this.user = user
-          UserRepository.addAuthorizedUser(user.login, self, sender())
-          UserAuthorizationRepository.insert(UserAuthorization(0, user.id, true, LocalDateTime.now()))
-          sender() ! Write(ByteString("<AUTH_SUCCESS>You successfully logged in!"))
 
-          val messages: Seq[org.bibliarij.chat.db.models.Message] = MessageRepository.getLast15Messages()
-          messages.foreach(
-            message => {
-              sender() ! Write(ByteString(s"<MSG>${MessageRepository.messageToString(message)}"))
-            }
-          )
-        } else {
-          UserAuthorizationRepository.insert(UserAuthorization(0, user.id, false, LocalDateTime.now()))
-          sender() ! Write(ByteString("You are not authorized!"))
-          exit
-        }
-      } else {
-        UserRepository.insert(
-          User(0, Provider.TCP, None, login, password, true, LocalDateTime.now())
+      val authorizationResult: String = AuthorizationHandler.handleAuthorization(login, password, Provider.TCP)
+      sender() ! Write(ByteString(authorizationResult))
+      if(authorizationResult.startsWith("<AUTH_SUCCESS>")){
+        this.user = user
+        UserRepository.addAuthorizedUser(user.login, self, sender())
+        sender() ! Write(ByteString(authorizationResult))
+
+        val messages: Seq[org.bibliarij.chat.db.models.Message] = MessageRepository.getLast15Messages()
+        messages.foreach(
+          message => {
+            sender() ! Write(ByteString(s"<MSG>${MessageRepository.messageToString(message)}"))
+          }
         )
-
-        sender() ! Write(ByteString(
-          "<CRED_REQ>You successfully registered! Now you can log in. Plz enter your credentials"
-        ))
+      } else if (authorizationResult.startsWith("<AUTH_FAILURE>")) {
+        sender() ! Write(ByteString(authorizationResult))
+        exit
       }
     } else {
       sender() ! Write(ByteString("Something went wrong"))

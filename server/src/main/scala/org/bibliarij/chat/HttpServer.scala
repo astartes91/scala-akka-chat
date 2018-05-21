@@ -8,6 +8,8 @@ import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
 import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.Flow
+import org.bibliarij.chat.db.AuthorizationHandler
+import org.bibliarij.chat.db.models.Provider
 
 import scala.concurrent.ExecutionContextExecutor
 
@@ -39,11 +41,26 @@ class HttpServer(
 
   private def wsRoute: Route = path("ws"){
     pathEndOrSingleSlash {
-      val echoService: Flow[Message, Message, _] = Flow[Message].map {
-        case TextMessage.Strict(txt) => TextMessage("ECHO: " + txt)
+      val webSocketService: Flow[Message, Message, _] = Flow[Message].map {
+        case TextMessage.Strict(txt) =>
+          if (txt.startsWith("<CRED_RESP>")){
+            val credentialsStr: String = txt.replace("<CRED_RESP>", "")
+            val credentials: Array[String] = credentialsStr.split(" ")
+            if (credentials.length == 2) {
+              val login: String = credentials(0)
+              val password: String = credentials(1)
+              val authorizationResult: String =
+                AuthorizationHandler.handleAuthorization(login, password, Provider.WEB_SOCKET)
+              TextMessage(authorizationResult)
+            } else {
+              TextMessage("Something went wrong")
+            }
+          } else {
+            TextMessage(txt)
+          }
         case _ => TextMessage("Message type unsupported")
       }
-      handleWebSocketMessages(echoService)
+      handleWebSocketMessages(webSocketService)
     }
   }
 
