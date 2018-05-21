@@ -8,6 +8,7 @@ import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
 import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.Flow
+//import akka.stream.scaladsl.FlowGraph.Implicits._
 import org.bibliarij.chat.db.AuthorizationHandler
 import org.bibliarij.chat.db.models.Provider
 
@@ -41,7 +42,14 @@ class HttpServer(
 
   private def wsRoute: Route = path("ws"){
     pathEndOrSingleSlash {
-      val webSocketService: Flow[Message, Message, _] = Flow[Message].map {
+      val webSocketService: Flow[Message, Message, _] =
+        /*Flow(Source.actorRef[org.bibliarij.chat.db.models.Message](bufferSize = 5, OverflowStrategy.fail)) {
+          implicit builder =>
+            chatSource =>
+
+        }*/
+
+        Flow[Message].map {
         case TextMessage.Strict(txt) =>
           if (txt.startsWith("<CRED_RESP>")){
             val credentialsStr: String = txt.replace("<CRED_RESP>", "")
