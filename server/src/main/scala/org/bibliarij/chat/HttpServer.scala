@@ -7,11 +7,9 @@ import akka.http.scaladsl.model.ws.{Message, TextMessage}
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
 import akka.stream.ActorMaterializer
-import akka.stream.scaladsl.Flow
-import org.bibliarij.chat.db.AuthorizationHandler
-import org.bibliarij.chat.db.models.Provider
+import akka.stream.scaladsl.{BroadcastHub, Flow, Keep, MergeHub, Sink, Source}
 
-import scala.concurrent.ExecutionContextExecutor
+import scala.concurrent.{ExecutionContextExecutor, Future}
 
 class HttpServer(
                 host: String,
@@ -41,7 +39,30 @@ class HttpServer(
 
   private def wsRoute: Route = path("ws"){
     pathEndOrSingleSlash {
-      val webSocketService: Flow[Message, Message, _] = Flow[Message].map {
+
+      // chat room many clients -> merge hub -> broadcasthub -> many clients
+      val (chatSink, chatSource): (Sink[String, _], Source[String, _]) =
+        MergeHub.source[String].toMat(BroadcastHub.sink[String])(Keep.both).run()
+
+      //val broadcast: Broadcast[String] = Broadcast[String](2)
+
+      /*val credentialsMessageFilter: Flow[String, String, NotUsed] = Flow[String].filter(_.startsWith("<CRED_RESP>"))
+      val msgMessageFilter: Flow[String, String, NotUsed] = Flow[String].filter(_.startsWith("<MSG>"))
+
+      val value: Sink[String, _] = BroadcastHub.sink[String](256)(Keep.right)
+      Flow[Message].map({case TextMessage.Strict(text) =>       Future.successful(text)}).toMat(value)*/
+
+      val webSocketService: Flow[Message, Message, _] =
+
+        Flow[Message].mapAsync(1) {
+          // transform websocket message to domain message (string)
+          case TextMessage.Strict(text) =>       Future.successful(text)
+        }
+          //.via(broadcast)
+          .via(Flow.fromSinkAndSource(chatSink, chatSource))
+          .map[Message](string => TextMessage(string))
+
+        /*Flow[Message].map {
         case TextMessage.Strict(txt) =>
           if (txt.startsWith("<CRED_RESP>")){
             val credentialsStr: String = txt.replace("<CRED_RESP>", "")
@@ -59,7 +80,7 @@ class HttpServer(
             TextMessage(txt)
           }
         case _ => TextMessage("Message type unsupported")
-      }
+      }*/
       handleWebSocketMessages(webSocketService)
     }
   }
