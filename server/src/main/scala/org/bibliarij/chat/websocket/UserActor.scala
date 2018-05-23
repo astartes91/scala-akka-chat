@@ -38,6 +38,8 @@ class UserActor(chatRoom: ActorRef) extends Actor {
           if (authorizationResultMessage.startsWith(Constants.AUTH_SUCCESS)){
             chatRoom ! ChatRoom.Join
             user = authorizationResult._2
+            val messages: Seq[Message] = MessageRepository.getLast15Messages()
+            messages.foreach(msg => outgoing ! OutgoingMessage(Constants.MSG + MessageRepository.messageToString(msg)))
           } else if (authorizationResultMessage.startsWith(Constants.AUTH_FAIL)){
             exit(outgoing)
           }
@@ -48,9 +50,12 @@ class UserActor(chatRoom: ActorRef) extends Actor {
       } else if(text.startsWith(Constants.MSG)) {
         if (user == null){
           outgoing ! OutgoingMessage("You are not authorized!")
+          exit(outgoing)
         }
-        val message: String = text.replace(Constants.MSG, "")
-        chatRoom ! Message(0, user.id, message, LocalDateTime.now())
+        val messageText: String = text.replace(Constants.MSG, "")
+        val message: Message = Message(0, user.id, messageText, LocalDateTime.now())
+        chatRoom ! message
+        MessageRepository.addMessage(message)
       }
 
     case msg: Message => outgoing ! OutgoingMessage(Constants.MSG + MessageRepository.messageToString(msg))

@@ -32,7 +32,7 @@ object MessageRepository {
     messages.clear()
   }
 
-  def getLast15UnsavedMessages() = {
+  private def getLast15UnsavedMessages() = {
     val messages15: util.List[Message] =
       this.messages.stream()
         .sorted((m, m1) => m.createdAt.compareTo(m1.createdAt))
@@ -42,7 +42,7 @@ object MessageRepository {
     messages15.toArray(messageArray)
   }
 
-  def findLast15SavedMessages(): Seq[Message] = {
+  private def findLast15SavedMessages(): Seq[Message] = {
     Await.result(Db.db.run(Db.messages.sortBy(m => m.creationDate).take(15).result), Duration.Inf)
   }
 
