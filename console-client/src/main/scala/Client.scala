@@ -7,6 +7,13 @@ import akka.util.ByteString
 
 import scala.io.StdIn
 
+object Constants {
+  val CRED_REQ: String = "<CRED_REQ>"
+  val MSG: String = "<MSG>"
+  val CRED_RESP: String = "<CRED_RESP>"
+  val AUTH_SUCCESS: String = "<AUTH_SUCCESS>"
+}
+
 class Client(remoteAddress: InetSocketAddress, actorSystem: ActorSystem) extends Actor with ActorLogging {
 
   IO(Tcp)(actorSystem) ! Connect(remoteAddress)
@@ -29,17 +36,17 @@ class Client(remoteAddress: InetSocketAddress, actorSystem: ActorSystem) extends
           val response: String = data.decodeString("UTF-8")
           log.info(s"Received response: $response")
 
-          if(response.startsWith("<CRED_REQ>")){
-            println(response.replace("<CRED_REQ>", ""))
+          if(response.startsWith(Constants.CRED_REQ)){
+            println(response.replace(Constants.CRED_REQ, ""))
 
             val credentials: String = StdIn.readLine()
-            connection ! Write(ByteString(s"<CRED_RESP>$credentials"))
-          } else if(response.startsWith("<AUTH_SUCCESS>")) {
-            println(response.replace("<AUTH_SUCCESS>", ""))
+            connection ! Write(ByteString(s"${Constants.CRED_RESP}$credentials"))
+          } else if(response.startsWith(Constants.AUTH_SUCCESS)) {
+            println(response.replace(Constants.AUTH_SUCCESS, ""))
             val listener: ActorRef = context.actorOf(Props(classOf[ConsoleListener], connection, self))
             listener ! "listen"
-          } else if(response.startsWith("<MSG>")) {
-            println(response.replace("<MSG>", ""))
+          } else if(response.startsWith(Constants.MSG)) {
+            println(response.replace(Constants.MSG, ""))
           } else {
             println(response)
           }
@@ -67,11 +74,12 @@ class ConsoleListener(connection: ActorRef, client: ActorRef) extends Actor {
     case "listen" =>
 
       var message: String = ""
-      while (message != null && !message.equals("!q")) {
-        println("Plz enter message or !q for quit")
+      val quitValue: String = "!q"
+      while (message != null && !message.equals(quitValue)) {
+        println("Plz enter message or " + quitValue + " for quit")
         message = StdIn.readLine()
-        if(message != null && !message.equals("!q")){
-          connection ! Write(ByteString(s"<MSG>$message"))
+        if(message != null && !message.equals(quitValue)){
+          connection ! Write(ByteString(s"${Constants.MSG}$message"))
         }
       }
       client ! "close"

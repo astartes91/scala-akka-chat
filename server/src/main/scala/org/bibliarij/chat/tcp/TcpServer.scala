@@ -6,6 +6,7 @@ import akka.actor.{Actor, ActorLogging, ActorRef, ActorSystem, Kill, Props}
 import akka.io.Tcp._
 import akka.io.{IO, Tcp}
 import akka.util.ByteString
+import org.bibliarij.chat.Constants
 
 class TcpServer(address: InetSocketAddress, actorSystem: ActorSystem) extends Actor with ActorLogging {
 
@@ -23,12 +24,12 @@ class TcpServer(address: InetSocketAddress, actorSystem: ActorSystem) extends Ac
       System.exit(0)
     case Connected(remoteAddress, localAddress) =>
       log.info(s"Tcp client from $remoteAddress connected!")
-      val handler: ActorRef = context.actorOf(Props[Handler])
+      val handler: ActorRef = context.actorOf(Props[TcpHandler])
       val connection: ActorRef = sender()
       connection ! Register(handler)
       connection ! Write(
         ByteString(
-          "<CRED_REQ>Hello! Please enter your credentials as login with password separated by space."
+          s"${Constants.CRED_REQ}Hello! Please enter your credentials as login with password separated by space."
         )
       )
   }

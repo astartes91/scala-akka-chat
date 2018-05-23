@@ -5,6 +5,7 @@ import java.util.concurrent.ConcurrentHashMap
 import akka.actor.ActorRef
 import akka.io.Tcp.Write
 import akka.util.ByteString
+import org.bibliarij.chat.Constants
 import org.bibliarij.chat.db.Db
 import org.bibliarij.chat.db.models.{Message, User}
 import slick.jdbc.H2Profile.api._
@@ -31,7 +32,7 @@ object UserRepository {
   }
 
   def sendMessageToAllUsers(message: Message): Unit = {
-    authorizedUsers.values().forEach(_._2 !  Write(ByteString(s"<MSG>${MessageRepository.messageToString(message)}")))
+    authorizedUsers.values().forEach(_._2 !  Write(ByteString(s"${Constants.MSG}${MessageRepository.messageToString(message)}")))
   }
 
   def insert(user: User) {

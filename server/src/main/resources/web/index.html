@@ -7,10 +7,19 @@
         <script src="script.js"></script>
     </head>
     <body>
-        <input type="text" id="loginInput">Login
-        <br>
-        <input type="password" id="passwordInput">Password
-        <br>
-        <button id="loginRegisterButton">Login/Register</button>
+        <div id="authorizationDiv">
+            <input type="text" id="loginInput">Login
+            <br>
+            <input type="password" id="passwordInput">Password
+            <br>
+            <button id="loginRegisterButton">Login/Register</button>
+        </div>
+        <div id="messagingDiv" style="display: none;">
+            <textarea id="messagesArea" readonly></textarea>
+            <br>
+            <input type="text" id="messageInput">
+            <br>
+            <button id="sendMessageButton">Send messsage</button>
+        </div>
     </body>
 </html>

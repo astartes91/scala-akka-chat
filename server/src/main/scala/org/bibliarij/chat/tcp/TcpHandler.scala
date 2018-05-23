@@ -5,14 +5,14 @@ import java.time.LocalDateTime
 import akka.actor.{Actor, ActorLogging, Kill}
 import akka.io.Tcp._
 import akka.util.ByteString
-import org.bibliarij.chat.db.AuthorizationHandler
 import org.bibliarij.chat.db.models.{Message, _}
 import org.bibliarij.chat.db.repository._
+import org.bibliarij.chat.{AuthorizationHandler, Constants}
 
 /**
   * @author Vladimir Nizamutdinov (astartes91@gmail.com)
   */
-class Handler extends Actor with ActorLogging {
+class TcpHandler extends Actor with ActorLogging {
 
   private var user: User = null
 
@@ -25,12 +25,12 @@ class Handler extends Actor with ActorLogging {
       var response: String = data.decodeString("UTF-8")
       log.info(s"Received response: $response")
 
-      if(response.startsWith("<CRED_RESP>")){
+      if(response.startsWith(Constants.CRED_RESP)){
 
         handleAuthorization(response)
-      } else if (response.startsWith("<MSG>")) {
+      } else if (response.startsWith(Constants.MSG)) {
         if (user != null){
-          response = response.replace("<MSG>", "")
+          response = response.replace(Constants.MSG, "")
           val message: Message = Message(0, user.id, response, LocalDateTime.now())
           MessageRepository.addMessage(message)
         } else {
@@ -51,7 +51,7 @@ class Handler extends Actor with ActorLogging {
   }
 
   private def handleAuthorization(response: String): Unit = {
-    val credentialsStr: String = response.replace("<CRED_RESP>", "")
+    val credentialsStr: String = response.replace(Constants.CRED_RESP, "")
     val credentials: Array[String] = credentialsStr.split(" ")
     if (credentials.length == 2) {
       val login: String = credentials(0)
@@ -59,18 +59,16 @@ class Handler extends Actor with ActorLogging {
 
       val authorizationResult: String = AuthorizationHandler.handleAuthorization(login, password, Provider.TCP)
       sender() ! Write(ByteString(authorizationResult))
-      if(authorizationResult.startsWith("<AUTH_SUCCESS>")){
+      if(authorizationResult.startsWith(Constants.AUTH_SUCCESS)){
         this.user = user
         UserRepository.addAuthorizedUser(user.login, self, sender())
         sender() ! Write(ByteString(authorizationResult))
 
         val messages: Seq[org.bibliarij.chat.db.models.Message] = MessageRepository.getLast15Messages()
         messages.foreach(
-          message => {
-            sender() ! Write(ByteString(s"<MSG>${MessageRepository.messageToString(message)}"))
-          }
+          message => sender() ! Write(ByteString(s"${Constants.MSG}${MessageRepository.messageToString(message)}"))
         )
-      } else if (authorizationResult.startsWith("<AUTH_FAILURE>")) {
+      } else if (authorizationResult.startsWith(Constants.AUTH_FAIL)) {
         sender() ! Write(ByteString(authorizationResult))
         exit
       }

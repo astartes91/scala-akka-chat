@@ -5,6 +5,7 @@ import java.net.InetSocketAddress
 import akka.actor.{ActorRef, ActorSystem, Props}
 import akka.stream.ActorMaterializer
 import org.bibliarij.chat.tcp.TcpServer
+import org.bibliarij.chat.websocket.HttpServer
 
 import scala.concurrent.ExecutionContextExecutor
 
