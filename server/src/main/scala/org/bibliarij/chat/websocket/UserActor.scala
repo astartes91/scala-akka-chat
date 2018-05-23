@@ -1,17 +1,22 @@
 package org.bibliarij.chat.websocket
 
+import java.time.LocalDateTime
+
 import akka.actor.{Actor, ActorRef, Kill}
-import org.bibliarij.chat.db.models.Provider
-import org.bibliarij.chat.websocket.User.{Connected, IncomingMessage, OutgoingMessage}
+import org.bibliarij.chat.db.models.{Message, Provider, User}
+import org.bibliarij.chat.db.repository.MessageRepository
+import org.bibliarij.chat.websocket.UserEvent.{Connected, IncomingMessage, OutgoingMessage}
 import org.bibliarij.chat.{AuthorizationHandler, Constants}
 
-object User {
+object UserEvent {
   case class Connected(outgoing: ActorRef)
   case class IncomingMessage(text: String)
   case class OutgoingMessage(text: String)
 }
 
 class UserActor(chatRoom: ActorRef) extends Actor {
+
+  private var user: User = null
 
   def receive = {
     case Connected(outgoing) =>
@@ -26,13 +31,14 @@ class UserActor(chatRoom: ActorRef) extends Actor {
         if (credentials.length == 2) {
           val login: String = credentials(0)
           val password: String = credentials(1)
-          val authorizationResult: String =
-            AuthorizationHandler.handleAuthorization(login, password, Provider.WEB_SOCKET)._1
-          outgoing ! OutgoingMessage(authorizationResult)
+          val authorizationResult: (String, User) = AuthorizationHandler.handleAuthorization(login, password, Provider.WEB_SOCKET)
+          val authorizationResultMessage: String = authorizationResult._1
+          outgoing ! OutgoingMessage(authorizationResultMessage)
 
-          if (authorizationResult.startsWith(Constants.AUTH_SUCCESS)){
+          if (authorizationResultMessage.startsWith(Constants.AUTH_SUCCESS)){
             chatRoom ! ChatRoom.Join
-          } else if (authorizationResult.startsWith(Constants.AUTH_FAIL)){
+            user = authorizationResult._2
+          } else if (authorizationResultMessage.startsWith(Constants.AUTH_FAIL)){
             exit(outgoing)
           }
         } else {
@@ -40,11 +46,14 @@ class UserActor(chatRoom: ActorRef) extends Actor {
           exit(outgoing)
         }
       } else if(text.startsWith(Constants.MSG)) {
+        if (user == null){
+          outgoing ! OutgoingMessage("You are not authorized!")
+        }
         val message: String = text.replace(Constants.MSG, "")
-        chatRoom ! ChatRoom.ChatMessage(message)
+        chatRoom ! Message(0, user.id, message, LocalDateTime.now())
       }
 
-    case ChatRoom.ChatMessage(text) => outgoing ! OutgoingMessage(Constants.MSG + text)
+    case msg: Message => outgoing ! OutgoingMessage(Constants.MSG + MessageRepository.messageToString(msg))
   }
 
   private def exit(outgoing: ActorRef): Unit = {

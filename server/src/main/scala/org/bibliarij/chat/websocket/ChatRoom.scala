@@ -1,6 +1,7 @@
 package org.bibliarij.chat.websocket
 
 import akka.actor._
+import org.bibliarij.chat.db.models.Message
 
 object ChatRoom {
   case object Join
@@ -14,14 +15,13 @@ class ChatRoom extends Actor {
   def receive = {
     case Join =>
       users += sender()
-
       context.watch(sender())
 
     // we also would like to remove the user when its actor is stopped
     case Terminated(user) =>
       users -= user
 
-    case msg: ChatMessage =>
+    case msg: Message =>
       users.foreach(_ ! msg)
   }
 }

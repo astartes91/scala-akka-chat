@@ -57,18 +57,18 @@ class HttpServer(
       val incomingMessages: Sink[Message, NotUsed] =
         Flow[Message].collect {
           // transform websocket message to domain message
-          case TextMessage.Strict(text) => User.IncomingMessage(text)
-        }.to(Sink.actorRef[User.IncomingMessage](userActor, PoisonPill))
+          case TextMessage.Strict(text) => UserEvent.IncomingMessage(text)
+        }.to(Sink.actorRef[UserEvent.IncomingMessage](userActor, PoisonPill))
 
       val outgoingMessages: Source[Message, NotUsed] =
-        Source.actorRef[User.OutgoingMessage](10, OverflowStrategy.fail)
+        Source.actorRef[UserEvent.OutgoingMessage](10, OverflowStrategy.fail)
           .mapMaterializedValue { outActor =>
             // give the user actor a way to send messages out
-            userActor ! User.Connected(outActor)
+            userActor ! UserEvent.Connected(outActor)
             NotUsed
           }.map(
           // transform domain message to web socket message
-          (outMsg: User.OutgoingMessage) => TextMessage(outMsg.text))
+          (outMsg: UserEvent.OutgoingMessage) => TextMessage(outMsg.text))
 
       val webSocketService: Flow[Message, Message, _] = Flow.fromSinkAndSource(incomingMessages, outgoingMessages)
 
