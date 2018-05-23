@@ -9,7 +9,6 @@ import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
 import akka.stream.scaladsl.{Flow, Sink, Source}
 import akka.stream.{ActorMaterializer, OverflowStrategy}
-import chat.{ChatRoom, User}
 import org.bibliarij.chat.Loggable
 
 import scala.concurrent.duration.Duration
@@ -53,7 +52,7 @@ class HttpServer(
   private def wsRoute: Route = path("ws"){
     pathEndOrSingleSlash {
 
-      val userActor: ActorRef = system.actorOf(Props(new User(chatRoom)))
+      val userActor: ActorRef = system.actorOf(Props(new UserActor(chatRoom)))
 
       val incomingMessages: Sink[Message, NotUsed] =
         Flow[Message].collect {

@@ -57,10 +57,11 @@ class TcpHandler extends Actor with ActorLogging {
       val login: String = credentials(0)
       val password: String = credentials(1)
 
-      val authorizationResult: String = AuthorizationHandler.handleAuthorization(login, password, Provider.TCP)
+      val result: (String, User) = AuthorizationHandler.handleAuthorization(login, password, Provider.TCP)
+      val authorizationResult: String = result._1
       sender() ! Write(ByteString(authorizationResult))
       if(authorizationResult.startsWith(Constants.AUTH_SUCCESS)){
-        this.user = user
+        this.user = result._2
         UserRepository.addAuthorizedUser(user.login, self, sender())
         sender() ! Write(ByteString(authorizationResult))
 

@@ -1,4 +1,4 @@
-package chat
+package org.bibliarij.chat.websocket
 
 import akka.actor._
 

@@ -1,7 +1,8 @@
-package chat
+package org.bibliarij.chat.websocket
 
 import akka.actor.{Actor, ActorRef, Kill}
 import org.bibliarij.chat.db.models.Provider
+import org.bibliarij.chat.websocket.User.{Connected, IncomingMessage, OutgoingMessage}
 import org.bibliarij.chat.{AuthorizationHandler, Constants}
 
 object User {
@@ -10,8 +11,7 @@ object User {
   case class OutgoingMessage(text: String)
 }
 
-class User(chatRoom: ActorRef) extends Actor {
-  import User._
+class UserActor(chatRoom: ActorRef) extends Actor {
 
   def receive = {
     case Connected(outgoing) =>
@@ -27,7 +27,7 @@ class User(chatRoom: ActorRef) extends Actor {
           val login: String = credentials(0)
           val password: String = credentials(1)
           val authorizationResult: String =
-            AuthorizationHandler.handleAuthorization(login, password, Provider.WEB_SOCKET)
+            AuthorizationHandler.handleAuthorization(login, password, Provider.WEB_SOCKET)._1
           outgoing ! OutgoingMessage(authorizationResult)
 
           if (authorizationResult.startsWith(Constants.AUTH_SUCCESS)){
