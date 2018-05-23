@@ -19,8 +19,7 @@ class UserActor(chatRoom: ActorRef) extends Actor {
   private var user: User = null
 
   def receive = {
-    case Connected(outgoing) =>
-      context.become(connected(outgoing))
+    case Connected(outgoing) => context.become(connected(outgoing))
   }
 
   def connected(outgoing: ActorRef): Receive = {
@@ -31,7 +30,8 @@ class UserActor(chatRoom: ActorRef) extends Actor {
         if (credentials.length == 2) {
           val login: String = credentials(0)
           val password: String = credentials(1)
-          val authorizationResult: (String, User) = AuthorizationHandler.handleAuthorization(login, password, Provider.WEB_SOCKET)
+          val authorizationResult: (String, User) =
+            AuthorizationHandler.handleAuthorization(login, password, Provider.WEB_SOCKET)
           val authorizationResultMessage: String = authorizationResult._1
           outgoing ! OutgoingMessage(authorizationResultMessage)
 
