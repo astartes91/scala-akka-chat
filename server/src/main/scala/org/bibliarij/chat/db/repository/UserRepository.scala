@@ -18,7 +18,7 @@ object UserRepository {
   private val authorizedUsers: java.util.Map[String, (ActorRef, ActorRef)] =
     new ConcurrentHashMap[String, (ActorRef, ActorRef)]()
 
-  def addAuthorizedUser(login: String, handler: ActorRef, sender: ActorRef): Unit ={
+  def addAuthorizedUser(login: String, handler: ActorRef, sender: ActorRef) = {
     if (authorizedUsers.containsKey(login)){
       val prevUserActor: ActorRef = authorizedUsers.get(login)._1
       prevUserActor ! "close"
@@ -27,12 +27,13 @@ object UserRepository {
     authorizedUsers.put(login, (handler, sender))
   }
 
-  def removeAuthorizedUser(login: String): Unit ={
+  def removeAuthorizedUser(login: String) = {
     authorizedUsers.remove(login)
   }
 
-  def sendMessageToAllUsers(message: Message): Unit = {
-    authorizedUsers.values().forEach(_._2 !  Write(ByteString(s"${Constants.MSG}${MessageRepository.messageToString(message)}")))
+  def sendMessageToAllUsers(message: Message) = {
+    authorizedUsers.values()
+      .forEach(_._2 !  Write(ByteString(s"${Constants.MSG}${MessageRepository.messageToString(message)}")))
   }
 
   def insert(user: User) {
