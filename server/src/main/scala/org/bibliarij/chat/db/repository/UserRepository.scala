@@ -3,9 +3,6 @@ package org.bibliarij.chat.db.repository
 import java.util.concurrent.ConcurrentHashMap
 
 import akka.actor.ActorRef
-import akka.io.Tcp.Write
-import akka.util.ByteString
-import org.bibliarij.chat.Constants
 import org.bibliarij.chat.db.Db
 import org.bibliarij.chat.db.models.{Message, User}
 import slick.jdbc.H2Profile.api._
@@ -15,16 +12,15 @@ import scala.concurrent.duration.Duration
 
 object UserRepository {
 
-  private val authorizedUsers: java.util.Map[String, (ActorRef, ActorRef)] =
-    new ConcurrentHashMap[String, (ActorRef, ActorRef)]()
+  private val authorizedUsers: java.util.Map[String, ActorRef] = new ConcurrentHashMap[String, ActorRef]()
 
-  def addAuthorizedUser(login: String, handler: ActorRef, sender: ActorRef) = {
+  def addAuthorizedUser(login: String, handler: ActorRef) = {
     if (authorizedUsers.containsKey(login)){
-      val prevUserActor: ActorRef = authorizedUsers.get(login)._1
+      val prevUserActor: ActorRef = authorizedUsers.get(login)
       prevUserActor ! "close"
       removeAuthorizedUser(login)
     }
-    authorizedUsers.put(login, (handler, sender))
+    authorizedUsers.put(login, handler)
   }
 
   def removeAuthorizedUser(login: String) = {
@@ -32,11 +28,10 @@ object UserRepository {
   }
 
   def sendMessageToAllUsers(message: Message) = {
-    authorizedUsers.values()
-      .forEach(_._2 !  Write(ByteString(s"${Constants.MSG}${MessageRepository.messageToString(message)}")))
+    authorizedUsers.values().forEach(_ ! message)
   }
 
-  def insert(user: User) {
+  def insert(user: User) = {
     Await.result(Db.db.run(Db.users += user), Duration.Inf)
   }
 

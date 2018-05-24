@@ -2,7 +2,7 @@ package org.bibliarij.chat.tcp
 
 import java.time.LocalDateTime
 
-import akka.actor.{Actor, ActorLogging, Kill}
+import akka.actor.{Actor, ActorLogging, ActorRef, Kill}
 import akka.io.Tcp._
 import akka.util.ByteString
 import org.bibliarij.chat.db.models.{Message, _}
@@ -15,6 +15,7 @@ import org.bibliarij.chat.{AuthorizationHandler, Constants}
 class TcpHandler extends Actor with ActorLogging {
 
   private var user: User = null
+  private var tcpSender: ActorRef = null
 
   override def receive: Receive = {
 
@@ -22,6 +23,7 @@ class TcpHandler extends Actor with ActorLogging {
       log.error("Failed to write request.")
       exit
     case Received(data) =>
+      tcpSender = sender()
       var response: String = data.decodeString("UTF-8")
       log.info(s"Received response: $response")
 
@@ -34,10 +36,12 @@ class TcpHandler extends Actor with ActorLogging {
           val message: Message = Message(0, user.id, response, LocalDateTime.now())
           MessageRepository.addMessage(message)
         } else {
-          sender() ! Write(ByteString("You are not authorized!"))
+          tcpSender ! Write(ByteString("You are not authorized!"))
           exit
         }
       }
+
+    case msg: Message => tcpSender ! Write(ByteString(s"${Constants.MSG}${MessageRepository.messageToString(msg)}"))
 
     case "close" =>
       log.info("Closing connection")
@@ -59,22 +63,22 @@ class TcpHandler extends Actor with ActorLogging {
 
       val result: (String, User) = AuthorizationHandler.handleAuthorization(login, password, Provider.TCP)
       val authorizationResult: String = result._1
-      sender() ! Write(ByteString(authorizationResult))
+      tcpSender ! Write(ByteString(authorizationResult))
       if(authorizationResult.startsWith(Constants.AUTH_SUCCESS)){
         this.user = result._2
-        UserRepository.addAuthorizedUser(user.login, self, sender())
-        sender() ! Write(ByteString(authorizationResult))
+        UserRepository.addAuthorizedUser(user.login, self)
+        tcpSender ! Write(ByteString(authorizationResult))
 
         val messages: Seq[org.bibliarij.chat.db.models.Message] = MessageRepository.getLast15Messages()
         messages.foreach(
-          message => sender() ! Write(ByteString(s"${Constants.MSG}${MessageRepository.messageToString(message)}"))
+          message => tcpSender ! Write(ByteString(s"${Constants.MSG}${MessageRepository.messageToString(message)}"))
         )
       } else if (authorizationResult.startsWith(Constants.AUTH_FAIL)) {
-        sender() ! Write(ByteString(authorizationResult))
+        tcpSender ! Write(ByteString(authorizationResult))
         exit
       }
     } else {
-      sender() ! Write(ByteString("Something went wrong"))
+      tcpSender ! Write(ByteString("Something went wrong"))
       exit
     }
   }
@@ -84,7 +88,7 @@ class TcpHandler extends Actor with ActorLogging {
       UserRepository.removeAuthorizedUser(this.user.login)
       this.user = null
     }
-    sender() ! Close
+    tcpSender ! Close
     context stop self
     self ! Kill
   }
