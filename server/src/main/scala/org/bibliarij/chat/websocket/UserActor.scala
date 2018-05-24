@@ -4,7 +4,7 @@ import java.time.LocalDateTime
 
 import akka.actor.{Actor, ActorRef, Kill}
 import org.bibliarij.chat.db.models.{Message, Provider, User}
-import org.bibliarij.chat.db.repository.MessageRepository
+import org.bibliarij.chat.db.repository.{MessageRepository, UserRepository}
 import org.bibliarij.chat.websocket.UserEvent.{Connected, IncomingMessage, OutgoingMessage}
 import org.bibliarij.chat.{AuthorizationHandler, Constants}
 
@@ -14,7 +14,7 @@ object UserEvent {
   case class OutgoingMessage(text: String)
 }
 
-class UserActor(chatRoom: ActorRef) extends Actor {
+class UserActor() extends Actor {
 
   private var user: User = null
 
@@ -36,8 +36,8 @@ class UserActor(chatRoom: ActorRef) extends Actor {
           outgoing ! OutgoingMessage(authorizationResultMessage)
 
           if (authorizationResultMessage.startsWith(Constants.AUTH_SUCCESS)){
-            chatRoom ! ChatRoom.Join
             user = authorizationResult._2
+            UserRepository.addAuthorizedUser(user.login, self)
             val messages: Seq[Message] = MessageRepository.getLast15Messages()
             messages.foreach(msg => outgoing ! OutgoingMessage(Constants.MSG + MessageRepository.messageToString(msg)))
           } else if (authorizationResultMessage.startsWith(Constants.AUTH_FAIL)){
@@ -54,7 +54,6 @@ class UserActor(chatRoom: ActorRef) extends Actor {
         }
         val messageText: String = text.replace(Constants.MSG, "")
         val message: Message = Message(0, user.id, messageText, LocalDateTime.now())
-        chatRoom ! message
         MessageRepository.addMessage(message)
       }
 

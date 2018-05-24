@@ -23,8 +23,6 @@ class HttpServer(
                 implicit val executionContext: ExecutionContextExecutor
                 ) extends Loggable {
 
-  private val chatRoom: ActorRef = system.actorOf(Props(new ChatRoom))
-
   def start(){
     Await.result(Http().bindAndHandle(route, host, port), Duration.Inf)
     logger.info(s"Http server started at $host:$port, press enter to kill server")
@@ -52,7 +50,7 @@ class HttpServer(
   private def wsRoute: Route = path("ws"){
     pathEndOrSingleSlash {
 
-      val userActor: ActorRef = system.actorOf(Props(new UserActor(chatRoom)))
+      val userActor: ActorRef = system.actorOf(Props(new UserActor()))
 
       val incomingMessages: Sink[Message, NotUsed] =
         Flow[Message].collect {
